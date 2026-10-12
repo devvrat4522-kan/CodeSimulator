@@ -1,0 +1,15 @@
+.env
+apps/frontend/.env
+apps/api/.env
+apps/worker/.env
+mcp/.env
+node_modules/
+dist/
+build/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+workspaces/*
+!workspaces/.gitkeep
