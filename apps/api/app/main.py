@@ -1,3 +1,4 @@
+import sys
 import tempfile
 from pathlib import Path
 from uuid import UUID
@@ -6,8 +7,13 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from psycopg.types.json import Jsonb
 
+ROOT = Path(__file__).resolve().parents[3]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from agents.intake.inventory import run_intake
+from agents.intake.stack_profiler import profile_stack
 from app.db import db
-from app.intake import run_intake
 from app.workspace import WorkspaceError, clone_repo, save_upload_zip
 
 app = FastAPI()
@@ -20,17 +26,20 @@ class CreateCloneJob(BaseModel):
 
 def finish_job(conn, job_id, path, step):
     counts = run_intake(conn, job_id, path)
+    file_rows = counts.pop("files")
+    stack_profile = profile_stack(file_rows, path)
     row = conn.execute(
         """
         UPDATE jobs
         SET status = 'running',
             current_stage = 'intake',
             workspace_path = %s,
+            stack_profile = %s,
             updated_at = now()
         WHERE id = %s
         RETURNING *
         """,
-        (path, job_id),
+        (path, Jsonb(stack_profile), job_id),
     ).fetchone()
     conn.execute(
         "INSERT INTO checkpoints (job_id, step, state) VALUES (%s, %s, %s)",

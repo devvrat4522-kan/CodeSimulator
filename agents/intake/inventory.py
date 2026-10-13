@@ -149,4 +149,4 @@ def run_intake(conn, job_id, workspace_path):
             """,
             (job_id, finding["file_path"], finding["line_no"], finding["kind"], finding["masked"]),
         )
-    return {"file_count": len(files), "secret_count": len(findings)}
+    return {"file_count": len(files), "secret_count": len(findings), "files": files}
